@@ -1,10 +1,7 @@
 use std::io;
 
-use actix_web::{get, App, HttpResponse, HttpServer, Responder, web};
-
-use crate::reserved_ports::ReservedPorts;
-
-mod reserved_ports;
+use actix_web::{App, get, HttpResponse, HttpServer, Responder, web};
+use config_manager::data::ports::ReservedPorts;
 
 
 #[get("/next/{port}")]

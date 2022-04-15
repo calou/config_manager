@@ -1,5 +1,5 @@
 [package]
-name = "index-manager"
+name = "config-manager"
 version = "0.1.0"
 edition = "2021"
 

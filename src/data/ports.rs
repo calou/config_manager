@@ -3,7 +3,7 @@ use std::sync::{Arc, Mutex};
 
 #[derive(Clone)]
 pub struct ReservedPorts {
-    pub(crate) entries: Arc<Mutex<BTreeSet<u32>>>,
+    pub entries: Arc<Mutex<BTreeSet<u32>>>,
 }
 
 impl Default for ReservedPorts {
