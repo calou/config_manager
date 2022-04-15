@@ -1,93 +1,43 @@
-use std::collections::{BTreeSet, HashMap};
-use std::future::Future;
-use std::pin::Pin;
-use std::task::{Context, Poll};
+use std::io;
 
-use hyper::{Body, Request, Response, Server};
-use hyper::service::{Service};
-use url::form_urlencoded;
+use actix_web::{App, HttpResponse, HttpServer, Responder, web};
 
 use crate::reserved_ports::ReservedPorts;
 
 mod reserved_ports;
 
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    let addr = ([127, 0, 0, 1], 3000).into();
-
-    let server = Server::bind(&addr).serve(MakeSvc { reserved_ports: ReservedPorts { entries: BTreeSet::new() } });
-    println!("Listening on http://{}", addr);
-
-    server.await?;
-    Ok(())
-}
-
-struct Svc {
+#[derive(Clone)]
+struct AppState {
     reserved_ports: ReservedPorts,
 }
 
-impl Service<Request<Body>> for Svc {
-    type Response = Response<Body>;
-    type Error = hyper::Error;
-    type Future = Pin<Box<dyn Future<Output=Result<Self::Response, Self::Error>> + Send>>;
-
-    fn poll_ready(&mut self, _: &mut Context) -> Poll<Result<(), Self::Error>> {
-        Poll::Ready(Ok(()))
-    }
-
-    fn call(&mut self, req: Request<Body>) -> Self::Future {
-        fn mk_response(s: String) -> Result<Response<Body>, hyper::Error> {
-            Ok(Response::builder().body(Body::from(s)).unwrap())
-        }
-
-        let res = match req.uri().path() {
-            "/next" => {
-                let from = Self::get_from_parameter_value(req);
-                mk_response(format!("{:?}", self.reserved_ports.next(from)))
-            },
-            "/next/reserve" => {
-                let from = Self::get_from_parameter_value(req);
-                mk_response(format!("{:?}", self.reserved_ports.reserve_next(from)))
-            },
-            _ => return Box::pin(async { mk_response("oh no! not found".into()) }),
-        };
-
-        Box::pin(async { res })
-    }
+async fn next(app_state: web::Data<AppState>, port: web::Path<u32>) -> impl Responder {
+    let next = app_state.reserved_ports.next(Some(port.into_inner()));
+    format!("{}", next)
 }
 
-impl Svc {
-    fn get_from_parameter_value(req: Request<Body>) -> Option<u32> {
-        let from = if let Some(query) = req.uri().query() {
-            let params = form_urlencoded::parse(query.as_bytes())
-                .into_owned()
-                .collect::<HashMap<String, String>>();
-            let option = params.get("from");
-            let value: u32 =  option.unwrap().parse().unwrap();
-            Some(value)
-        } else {
-            None
-        };
-        from
-    }
+async fn reserve(app_state: web::Data<AppState>, port: web::Path<u32>) -> impl Responder {
+    let next = app_state.reserved_ports.reserve_next(Some(port.into_inner()));
+    format!("{}", next)
 }
 
-struct MakeSvc {
-    reserved_ports: ReservedPorts,
+async fn release(app_state: web::Data<AppState>, port: web::Path<u32>) -> HttpResponse {
+    app_state.reserved_ports.release(port.into_inner());
+    HttpResponse::Ok().body("Ok") // FIXME
 }
 
-impl<T> Service<T> for MakeSvc {
-    type Response = Svc;
-    type Error = hyper::Error;
-    type Future = Pin<Box<dyn Future<Output=Result<Self::Response, Self::Error>> + Send>>;
-
-    fn poll_ready(&mut self, _: &mut Context) -> Poll<Result<(), Self::Error>> {
-        Poll::Ready(Ok(()))
-    }
-
-    fn call(&mut self, _: T) -> Self::Future {
-        let store = self.reserved_ports.clone();
-        let fut = async move { Ok(Svc { reserved_ports: reserved }) };
-        Box::pin(fut)
-    }
+#[actix_web::main]
+async fn main() -> io::Result<()> {
+    let reserved_ports = ReservedPorts::default();
+    let app_state = AppState {
+        reserved_ports
+    };
+    HttpServer::new(move || {
+        App::new().app_data(web::Data::new(app_state.clone()))
+            .route("/next/{port}", web::to(next))
+            .route("/next/reserve/{port}", web::to(reserve))
+            .route("/next/release/{port}", web::to(release))
+    }).bind(("127.0.0.1", 3000))?
+      .run()
+      .await
 }
