@@ -1,13 +1,13 @@
-use uuid::Uuid;
+use serde::Serialize;
 
-#[derive(Clone)]
+#[derive(Debug, Serialize, Clone)]
 pub struct Template {
-    pub uuid: Uuid,
+    pub uuid: String,
     pub content: String,
     pub ports: Vec<PortRequest>
 }
 
-#[derive(Clone)]
+#[derive(Debug, Serialize, Clone)]
 pub struct PortRequest {
     name: String,
     requested_value: u32

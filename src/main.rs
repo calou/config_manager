@@ -6,16 +6,22 @@ use std::io;
 
 use actix_web::{App, HttpServer, web};
 
-use http::services::next_service;
-use crate::storage::port::PortStore;
+use http::services::{next, template};
+use crate::storage::port_store::PortStore;
+use crate::storage::template_store::TemplateStore;
 
 #[actix_web::main]
 async fn main() -> io::Result<()> {
-    let reserved_ports = PortStore::default();
+
+    let port_store = PortStore::default();
+    let template_store = TemplateStore::default();
+
     HttpServer::new(move || {
         App::new()
-            .app_data(web::Data::new(reserved_ports.clone()))
-            .configure(next_service)
+            .app_data(web::Data::new(port_store.clone()))
+            .app_data(web::Data::new(template_store.clone()))
+            .configure(next)
+            .configure(template)
     }).bind(("127.0.0.1", 3000))?
       .run()
       .await

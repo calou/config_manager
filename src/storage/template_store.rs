@@ -5,7 +5,7 @@ use crate::data::template::Template;
 
 #[derive(Clone)]
 pub struct TemplateStore {
-    map: Arc<Mutex<BTreeMap<Uuid, Template>>>,
+    map: Arc<Mutex<BTreeMap<String, Template>>>,
 }
 
 
@@ -18,12 +18,12 @@ impl Default for TemplateStore {
 
 impl TemplateStore {
     pub fn create(&self, content: &str) -> Template {
-        let uuid = Uuid::new_v4();
+        let uuid = Uuid::new_v4().to_string();
 
         // Parse content to extract ports
         // TODO
         let template = Template {
-            uuid,
+            uuid: uuid.clone(),
             content: String::from(content),
             ports: vec![],
         };
@@ -33,9 +33,9 @@ impl TemplateStore {
         template
     }
 
-    pub fn get(&self, uuid: &Uuid) -> Option<Template> {
+    pub fn get(&self, uuid: String) -> Option<Template> {
         let m = self.map.lock().unwrap();
-        m.get(uuid).cloned()
+        m.get(&uuid).cloned()
     }
 
     pub fn get_all(&self) -> Vec<Template> {
@@ -50,11 +50,11 @@ mod tests {
     use std::sync::{Arc, Mutex};
     use uuid::Uuid;
     use crate::data::template::Template;
-    use crate::storage::template::TemplateStore;
+    use crate::storage::template_store::TemplateStore;
 
     fn create_template(content: &str) -> Template {
         Template {
-            uuid: Uuid::new_v4(),
+            uuid: Uuid::new_v4().to_string(),
             content: String::from(content),
             ports: vec![],
         }
@@ -70,11 +70,11 @@ mod tests {
 
     #[test]
     fn get_returns_expected_data() {
-        let uuid = Uuid::new_v4();
+        let uuid = Uuid::new_v4().to_string();
         let content = "something";
-        let map = BTreeMap::from( [(uuid, create_template(content))]);
+        let map = BTreeMap::from( [(uuid.clone(), create_template(content))]);
         let store = TemplateStore { map: Arc::new(Mutex::new(map))};
-        let template = store.get(&uuid);
+        let template = store.get(uuid);
         assert_eq!(template.unwrap().content, String::from(content));
     }
 
@@ -84,14 +84,16 @@ mod tests {
         let content2 = "something else";
         let content3 = "anything";
         let map = BTreeMap::from( [
-            (Uuid::new_v4(), create_template(content1)),
-            (Uuid::new_v4(), create_template(content2)),
-            (Uuid::new_v4(), create_template(content3)),
+            (Uuid::new_v4().to_string(), create_template(content1)),
+            (Uuid::new_v4().to_string(), create_template(content2)),
+            (Uuid::new_v4().to_string(), create_template(content3)),
         ]);
         let store = TemplateStore { map: Arc::new(Mutex::new(map))};
         let templates = store.get_all();
-        assert_eq!(templates.get(0).unwrap().content, String::from(content1));
-        assert_eq!(templates.get(1).unwrap().content, String::from(content2));
-        assert_eq!(templates.get(2).unwrap().content, String::from(content3));
+        let contents = templates.iter().map(|t| t.content.clone() )
+            .collect::<Vec<String>>();
+        assert!(contents.contains(&String::from(content1)));
+        assert!(contents.contains(&String::from(content2)));
+        assert!(contents.contains(&String::from(content3)));
     }
 }
