@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 use std::sync::{Arc, Mutex};
 use uuid::Uuid;
-use crate::data::template::Template;
+use crate::data::template::{parse, Template};
 
 #[derive(Clone)]
 pub struct TemplateStore {
@@ -20,12 +20,12 @@ impl TemplateStore {
     pub fn create(&self, content: &str) -> Template {
         let uuid = Uuid::new_v4().to_string();
 
-        // Parse content to extract ports
-        // TODO
+        let port_requests = parse(content.to_string());
+
         let template = Template {
             uuid: uuid.clone(),
             content: String::from(content),
-            ports: vec![],
+            port_requests
         };
 
         let mut m = self.map.lock().unwrap();
@@ -56,7 +56,7 @@ mod tests {
         Template {
             uuid: Uuid::new_v4().to_string(),
             content: String::from(content),
-            ports: vec![],
+            port_requests: vec![],
         }
     }
 
