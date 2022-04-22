@@ -7,7 +7,7 @@ RUN cargo fetch
 COPY src src
 RUN cargo build --release
 
-FROM gcr.io/distroless/cc-debian10
+FROM gcr.io/distroless/cc-debian11
 WORKDIR /app
 
 COPY --from=builder /code/target/release/config-manager config-manager

@@ -1,3 +1,1 @@
-pub mod services;
-pub mod next_service;
-pub mod template_service;
+pub mod configuration_service;

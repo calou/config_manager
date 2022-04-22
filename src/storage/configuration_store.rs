@@ -29,6 +29,13 @@ impl ConfigurationStore {
         let m = self.map.lock().unwrap();
         m.get(&uuid).cloned()
     }
+
+    pub fn delete(&self, uuid: String) -> Option<Configuration> {
+        let mut m = self.map.lock().unwrap();
+        let option = m.get(&uuid.clone()).cloned();
+        m.remove(&uuid);
+        option
+    }
 }
 
 #[cfg(test)]
