@@ -73,29 +73,6 @@ mod tests {
     }
 
     #[test]
-    fn next_with_default() {
-        let store = create_store(vec![]);
-        assert_eq!(store.next(None), 1);
-        delete_store(store);
-    }
-
-    #[test]
-    fn next_with_value_and_no_existing_values() {
-        let store = create_store(vec![]);
-        assert_eq!(store.next(Some(1234)), 1234);
-        delete_store(store);
-    }
-
-    #[test]
-    fn port_list_next_with_value_and_existing_values() {
-        let store = create_store(vec![1, 2, 3, 4 /*, 5*/, 6 /*, 7*/, 8]);
-        assert_eq!(store.next(Some(2)), 5);
-        assert_eq!(store.next(Some(6)), 7);
-        assert_eq!(store.next(Some(9)), 9);
-        delete_store(store);
-    }
-
-    #[test]
     fn reserve_next_with_default() {
         let store = create_store(vec![]);
         assert_eq!(store.reserve_next(None), 1);
