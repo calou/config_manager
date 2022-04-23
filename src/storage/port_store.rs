@@ -1,5 +1,4 @@
 use std::sync::{Arc, Mutex};
-use log::info;
 use rocksdb::DB;
 use crate::data::port_list::PortList;
 
@@ -31,17 +30,7 @@ impl PortStore {
             next = port_list.next(from);
             port_list.entries.insert(next);
             let byte_array = serde_json::to_vec(&port_list).unwrap();
-            info!("{}", byte_array.len());
             let _ = guard.put(PORT_KEY, &byte_array);
-        }
-        next
-    }
-
-    pub fn next(&self, from: Option<u32>) -> u32 {
-        let mut next: u32 = 0;
-        if let Some(entries) = self.db.lock().unwrap().get(PORT_KEY).unwrap() {
-            let port_list: PortList = serde_json::from_slice(entries.as_slice()).unwrap();
-            next = port_list.next(from);
         }
         next
     }

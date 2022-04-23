@@ -1,7 +1,7 @@
 FROM rust:1-slim-bullseye AS builder
 WORKDIR /code
 
-RUN USER=root cargo init
+RUN USER=root cargo init && apt update -y && apt install -y clang
 COPY Cargo.toml Cargo.toml
 RUN cargo fetch
 COPY src src

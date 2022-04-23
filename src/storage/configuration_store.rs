@@ -1,5 +1,4 @@
 use std::sync::{Arc, Mutex};
-use log::info;
 use rocksdb::DB;
 use crate::data::configuration::{Configuration, generate};
 use crate::data::template::Template;
@@ -19,7 +18,6 @@ impl ConfigurationStore {
         let config = generate(template, port_store);
         let db = self.db.lock().unwrap();
         let bytes = serde_json::to_vec(&config).unwrap();
-        info!("b{}", bytes.len());
         let _ = db.put(config.clone().uuid.as_bytes(), bytes);
         config
     }
