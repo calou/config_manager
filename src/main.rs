@@ -1,19 +1,19 @@
-mod data;
-mod http;
-mod storage;
-
 use std::io;
 use std::path::Path;
 
 use actix_web::{App, HttpServer, web};
 use actix_web::middleware::Logger;
-use env_logger::{Env};
-use rocksdb::DB;
 use clap::Parser;
+use env_logger::Env;
+use rocksdb::{DB, DBCompressionType, DBWithThreadMode, MultiThreaded, Options};
 
 use crate::http::configuration_service;
 use crate::storage::configuration_store::ConfigurationStore;
 use crate::storage::port_store::PortStore;
+
+mod data;
+mod http;
+mod storage;
 
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
@@ -30,7 +30,8 @@ async fn main() -> io::Result<()> {
     let args = Args::parse();
     let path = &args.data_dir;
     let directory = Path::new(path);
-    let port_store = PortStore::new(DB::open_default(directory.join("ports.db")).unwrap());
+    let port_db = create_port_db(directory);
+    let port_store = PortStore::new(port_db);
     let configuration_store = ConfigurationStore::new(DB::open_default(directory.join("configurations.db")).unwrap());
 
     HttpServer::new(move || {
@@ -49,4 +50,12 @@ async fn main() -> io::Result<()> {
     }).bind(("0.0.0.0", 3000))?
         .run()
         .await
+}
+
+fn create_port_db(directory: &Path) -> DBWithThreadMode<MultiThreaded> {
+    let mut cf_opts = Options::default();
+    cf_opts.set_max_write_buffer_number(16);
+    cf_opts.set_compression_type(DBCompressionType::None);
+    let port_db = DB::open(&cf_opts, directory.join("ports.db")).unwrap();
+    port_db
 }
