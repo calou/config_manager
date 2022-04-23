@@ -36,16 +36,30 @@ pub fn generate(template: Template, port_store: Arc<PortStore>) -> Configuration
 #[cfg(test)]
 mod tests {
     use std::sync::Arc;
+    use rocksdb::{DB, Options};
+    use uuid::Uuid;
     use crate::data::configuration::generate;
     use crate::data::template::Template;
     use crate::PortStore;
 
+    fn delete_store(store: PortStore) {
+        let _ = DB::destroy(&Options::default(), store.db.lock().unwrap().path());
+    }
+
+    fn create_store() -> PortStore {
+        let path = format!("/tmp/test_{}.db", Uuid::new_v4().to_string());
+        let db = DB::open_default(path).unwrap();
+        let store = PortStore::new(db);
+        store
+    }
+
     #[test]
     fn generate_returns_expected_data() {
         let template = Template::create("test:\n\t%abc:1234%\n\tTEST: %def%\n");
-        let port_store = PortStore::default();
+        let port_store = create_store();
 
-        let configuration = generate(template, Arc::new(port_store));
+        let configuration = generate(template, Arc::new(port_store.clone()));
         assert_eq!(configuration.content, "test:\n\t1234\n\tTEST: 3001\n");
+        delete_store(port_store);
     }
 }

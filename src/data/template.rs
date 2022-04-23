@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::{BTreeMap, HashSet};
 use std::sync::{Arc, Mutex};
 use lazy_static::lazy_static;
 use regex::Regex;
@@ -16,7 +16,7 @@ pub struct Template {
 
 impl Template {
     pub fn create(content: &str) -> Self {
-        let mut port_requests_by_name: HashMap<String, PortRequest> = HashMap::new();
+        let mut port_requests_by_name: BTreeMap<String, PortRequest> = BTreeMap::new();
 
         for cap in RE.captures_iter(content) {
             let name = cap.get(1).map_or("", |m| m.as_str());
