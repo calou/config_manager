@@ -1,40 +1,49 @@
-use std::collections::BTreeMap;
 use std::sync::{Arc, Mutex};
+use log::info;
+use rocksdb::DB;
 use crate::data::configuration::{Configuration, generate};
 use crate::data::template::Template;
 use crate::PortStore;
 
 #[derive(Clone)]
 pub struct ConfigurationStore {
-    map: Arc<Mutex<BTreeMap<String, Configuration>>>,
+    db: Arc<Mutex<DB>>
 }
-
-
-impl Default for ConfigurationStore {
-    fn default() -> Self {
-        ConfigurationStore { map: Arc::new(Mutex::new(BTreeMap::new())) }
-    }
-}
-
 
 impl ConfigurationStore {
+    pub fn new(db:DB)-> Self {
+        ConfigurationStore {db : Arc::new(Mutex::new(db))}
+    }
+
     pub fn create(&self, template: Template, port_store:Arc<PortStore>) -> Configuration {
         let config = generate(template, port_store);
-        let mut m = self.map.lock().unwrap();
-        m.insert(config.clone().uuid, config.clone());
+        let db = self.db.lock().unwrap();
+        let bytes = serde_json::to_vec(&config).unwrap();
+        info!("b{}", bytes.len());
+        let _ = db.put(config.clone().uuid.as_bytes(), bytes);
         config
     }
 
     pub fn get(&self, uuid: String) -> Option<Configuration> {
-        let m = self.map.lock().unwrap();
-        m.get(&uuid).cloned()
+        let guard = self.db.lock().unwrap();
+        if let Some(config) = guard.get(uuid.as_bytes()).unwrap() {
+            let configuration: Configuration = serde_json::from_slice(config.as_slice()).unwrap();
+            Some(configuration)
+        } else {
+            None
+        }
     }
 
     pub fn delete(&self, uuid: String) -> Option<Configuration> {
-        let mut m = self.map.lock().unwrap();
-        let option = m.get(&uuid.clone()).cloned();
-        m.remove(&uuid);
-        option
+        let guard = self.db.lock().unwrap();
+        let uuid = uuid.as_bytes();
+        if let Some(config) = guard.get(uuid).unwrap() {
+            let configuration: Configuration = serde_json::from_slice(config.as_slice()).unwrap();
+            let _ = guard.delete(uuid);
+            Some(configuration)
+        } else {
+            None
+        }
     }
 }
 

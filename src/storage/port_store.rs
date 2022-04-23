@@ -77,7 +77,7 @@ mod tests {
         for &v in arr.iter() {
             entries.insert(v);
         }
-        let port_list = PortList { entries: entries };
+        let port_list = PortList { entries };
         let _ = db.put(PORT_KEY, serde_json::to_vec(&port_list).unwrap());
         let store = PortStore::new(db);
         store

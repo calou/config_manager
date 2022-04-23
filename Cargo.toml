@@ -18,4 +18,4 @@ env_logger = "0.9.0"
 [dependencies.rocksdb]
 version = "0.18.0"
 default-features = false
-features = ["lz4"]
+features = ["lz4", "multi-threaded-cf"]

@@ -3,6 +3,7 @@ mod http;
 mod storage;
 
 use std::io;
+use std::path::Path;
 
 use actix_web::{App, HttpServer, web};
 use actix_web::middleware::Logger;
@@ -16,10 +17,10 @@ use crate::storage::port_store::PortStore;
 #[actix_web::main]
 async fn main() -> io::Result<()> {
     env_logger::init_from_env(Env::default().default_filter_or("info"));
-    let path = "/tmp/config_manager.db";
-    let db = DB::open_default(path).unwrap();
-    let port_store = PortStore::new(db);
-    let configuration_store = ConfigurationStore::default();
+    let path = "/tmp";
+    let directory = Path::new(path);
+    let port_store = PortStore::new(DB::open_default(directory.join("ports.db")).unwrap());
+    let configuration_store = ConfigurationStore::new(DB::open_default(directory.join("configurations.db")).unwrap());
 
     HttpServer::new(move || {
         App::new()

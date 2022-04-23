@@ -1,11 +1,11 @@
 use std::sync::Arc;
-use serde::Serialize;
+use serde::{Serialize, Deserialize};
 use uuid::Uuid;
 
 use crate::data::template::Template;
 use crate::PortStore;
 
-#[derive(Clone, Serialize)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct Configuration {
     pub uuid: String,
     pub content: String,
