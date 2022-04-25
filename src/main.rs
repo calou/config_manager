@@ -53,6 +53,7 @@ async fn main() -> io::Result<()> {
 
 fn create_port_db(directory: &Path) -> DBWithThreadMode<MultiThreaded> {
     let mut cf_opts = Options::default();
+    cf_opts.create_if_missing(true);
     cf_opts.set_max_write_buffer_number(16);
     cf_opts.set_compression_type(DBCompressionType::None);
     DB::open(&cf_opts, directory.join("ports.db")).unwrap()
