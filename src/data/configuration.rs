@@ -1,5 +1,5 @@
+use serde::{Deserialize, Serialize};
 use std::sync::Arc;
-use serde::{Serialize, Deserialize};
 use uuid::Uuid;
 
 use crate::data::template::Template;
@@ -9,7 +9,7 @@ use crate::PortStore;
 pub struct Configuration {
     pub uuid: String,
     pub content: String,
-    pub ports: Vec<u32>
+    pub ports: Vec<u32>,
 }
 
 pub fn generate(template: Template, port_store: Arc<PortStore>) -> Configuration {
@@ -29,18 +29,18 @@ pub fn generate(template: Template, port_store: Arc<PortStore>) -> Configuration
     Configuration {
         uuid,
         content,
-        ports
+        ports,
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use std::sync::Arc;
-    use rocksdb::{DB, Options};
-    use uuid::Uuid;
     use crate::data::configuration::generate;
     use crate::data::template::Template;
     use crate::PortStore;
+    use rocksdb::{Options, DB};
+    use std::sync::Arc;
+    use uuid::Uuid;
 
     fn delete_store(store: PortStore) {
         let _ = DB::destroy(&Options::default(), store.db.lock().unwrap().path());
@@ -49,8 +49,7 @@ mod tests {
     fn create_store() -> PortStore {
         let path = format!("/tmp/test_{}.db", Uuid::new_v4().to_string());
         let db = DB::open_default(path).unwrap();
-        let store = PortStore::new(db);
-        store
+        PortStore::new(db)
     }
 
     #[test]

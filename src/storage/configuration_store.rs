@@ -1,24 +1,26 @@
-use std::sync::{Arc, Mutex};
-use rocksdb::DB;
-use crate::data::configuration::{Configuration, generate};
+use crate::data::configuration::{generate, Configuration};
 use crate::data::template::Template;
 use crate::PortStore;
+use rocksdb::DB;
+use std::sync::{Arc, Mutex};
 
 #[derive(Clone)]
 pub struct ConfigurationStore {
-    db: Arc<Mutex<DB>>
+    db: Arc<Mutex<DB>>,
 }
 
 impl ConfigurationStore {
-    pub fn new(db:DB)-> Self {
-        ConfigurationStore {db : Arc::new(Mutex::new(db))}
+    pub fn new(db: DB) -> Self {
+        ConfigurationStore {
+            db: Arc::new(Mutex::new(db)),
+        }
     }
 
-    pub fn create(&self, template: Template, port_store:Arc<PortStore>) -> Configuration {
+    pub fn create(&self, template: Template, port_store: Arc<PortStore>) -> Configuration {
         let config = generate(template, port_store);
         let db = self.db.lock().unwrap();
         let bytes = serde_json::to_vec(&config).unwrap();
-        let _ = db.put(config.clone().uuid.as_bytes(), bytes);
+        let _ = db.put(config.uuid.as_bytes(), bytes);
         config
     }
 
@@ -46,7 +48,4 @@ impl ConfigurationStore {
 }
 
 #[cfg(test)]
-mod tests {
-
-
-}
+mod tests {}

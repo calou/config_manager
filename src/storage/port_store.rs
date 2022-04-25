@@ -1,7 +1,6 @@
-use std::sync::{Arc, Mutex};
-use rocksdb::DB;
 use crate::data::port_list::PortList;
-
+use rocksdb::DB;
+use std::sync::{Arc, Mutex, MutexGuard};
 
 const PORT_KEY: &[u8; 5] = b"ports";
 
@@ -18,8 +17,13 @@ impl PortStore {
             let _ = db.put(PORT_KEY, &byte_array);
         }
         PortStore {
-            db: Arc::new(Mutex::new(db))
+            db: Arc::new(Mutex::new(db)),
         }
+    }
+
+    fn update(guard: MutexGuard<DB>, port_list: &mut PortList) {
+        let byte_array = serde_json::to_vec(&port_list).unwrap();
+        let _ = guard.put(PORT_KEY, &byte_array);
     }
 
     pub fn reserve_next(&self, from: Option<u32>) -> u32 {
@@ -27,10 +31,8 @@ impl PortStore {
         let guard = self.db.lock().unwrap();
         if let Some(entries) = guard.get(PORT_KEY).unwrap() {
             let mut port_list: PortList = serde_json::from_slice(entries.as_slice()).unwrap();
-            next = port_list.next(from);
-            port_list.entries.insert(next);
-            let byte_array = serde_json::to_vec(&port_list).unwrap();
-            let _ = guard.put(PORT_KEY, &byte_array);
+            next = port_list.reserve_next(from);
+            Self::update(guard, &mut port_list);
         }
         next
     }
@@ -41,8 +43,7 @@ impl PortStore {
         if let Some(entries) = guard.get(PORT_KEY).unwrap() {
             let mut port_list: PortList = serde_json::from_slice(entries.as_slice()).unwrap();
             result = port_list.entries.remove(&value);
-            let byte_array = serde_json::to_vec(&port_list).unwrap();
-            let _ = guard.put(PORT_KEY, &byte_array);
+            Self::update(guard, &mut port_list);
         }
         result
     }
@@ -50,10 +51,10 @@ impl PortStore {
 
 #[cfg(test)]
 mod tests {
+    use crate::storage::port_store::{PortList, PortStore, PORT_KEY};
+    use rocksdb::{Options, DB};
     use std::collections::BTreeSet;
-    use rocksdb::{DB, Options};
     use uuid::Uuid;
-    use crate::storage::port_store::{PORT_KEY, PortList, PortStore};
 
     fn delete_store(store: PortStore) {
         let _ = DB::destroy(&Options::default(), store.db.lock().unwrap().path());
@@ -68,8 +69,7 @@ mod tests {
         }
         let port_list = PortList { entries };
         let _ = db.put(PORT_KEY, serde_json::to_vec(&port_list).unwrap());
-        let store = PortStore::new(db);
-        store
+        PortStore::new(db)
     }
 
     #[test]
@@ -103,7 +103,7 @@ mod tests {
     #[test]
     fn release_with_values() {
         let store = create_store(vec![1, 2, 4]);
-        assert!(store.clone().release(2));
+        assert!(store.release(2));
         assert!(!store.release(3));
         delete_store(store);
     }

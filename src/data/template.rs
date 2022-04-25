@@ -1,8 +1,8 @@
-use std::collections::{BTreeMap, HashSet};
-use std::sync::{Arc, Mutex};
 use lazy_static::lazy_static;
 use regex::Regex;
 use serde::Serialize;
+use std::collections::{BTreeMap, HashSet};
+use std::sync::{Arc, Mutex};
 
 lazy_static! {
     static ref RE: Regex = Regex::new(r"%(\w+)(:(\d+))?%").unwrap();
@@ -27,21 +27,24 @@ impl Template {
             } else {
                 let mut set = HashSet::new();
                 set.insert(cap[0].to_string());
-                port_requests_by_name.insert(name.to_string(), PortRequest {
-                    name: name.to_string(),
-                    requested_value: port,
-                    matches: Arc::new(Mutex::new(set)),
-                });
+                port_requests_by_name.insert(
+                    name.to_string(),
+                    PortRequest {
+                        name: name.to_string(),
+                        requested_value: port,
+                        matches: Arc::new(Mutex::new(set)),
+                    },
+                );
             }
         }
 
-
         Template {
             content: String::from(content),
-            port_requests: port_requests_by_name.clone()
+            port_requests: port_requests_by_name
+                .clone()
                 .values()
                 .cloned()
-                .collect::<Vec<PortRequest>>()
+                .collect::<Vec<PortRequest>>(),
         }
     }
 }
